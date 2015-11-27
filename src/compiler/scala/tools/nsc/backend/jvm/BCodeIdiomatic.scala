@@ -211,6 +211,14 @@ abstract class BCodeIdiomatic extends SubComponent {
     /*
      * can-multi-thread
      */
+    final def genPrimitiveConcat(el: BType, pos: Position): Unit = {
+      val bt = MethodBType(List(el), jlStringBuilderRef)
+      invokevirtual(StringBuilderClassName, "append", bt.descriptor, pos)
+    }
+
+    /*
+     * can-multi-thread
+     */
     final def genEndConcat(pos: Position): Unit = {
       invokevirtual(StringBuilderClassName, "toString", "()Ljava/lang/String;", pos)
     }

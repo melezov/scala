@@ -988,6 +988,28 @@ abstract class BCodeBodyBuilder extends BCodeSkelBuilder {
       }
     }
 
+    object BoxedAppendablePrimitive {
+      def unapply(t: Tree): Option[(BType, Tree)] = t match {
+        case Apply(Select(Select(Ident(scala_), StringBuilderAppendable(bt)), box), v :: Nil) => Some(bt, v)
+        case _ => None
+      }
+
+      /* Primitive types that are supported by StringBuilder's append */
+      object StringBuilderAppendable {
+        def unapply(name: Name): Option[BType] = name match {
+          case nme.Boolean => Some(BOOL)
+          case nme.Byte => Some(BYTE)
+          case nme.Char => Some(CHAR)
+          case nme.Double => Some(DOUBLE)
+          case nme.Float => Some(FLOAT)
+          case nme.Int => Some(INT)
+          case nme.Long => Some(LONG)
+          case nme.Short => Some(SHORT)
+          case _ => None
+        }
+      }
+    }
+
     def genStringConcat(tree: Tree): BType = {
       lineNumber(tree)
       liftStringConcat(tree) match {
@@ -999,9 +1021,17 @@ abstract class BCodeBodyBuilder extends BCodeSkelBuilder {
         case concatenations =>
           bc.genStartConcat(tree.pos)
           for (elem <- concatenations) {
-            val kind = tpeTK(elem)
-            genLoad(elem, kind)
-            bc.genStringConcat(kind, elem.pos)
+            elem match {
+              // Optimization for primitive concatenation
+              case BoxedAppendablePrimitive(bt, value) =>
+                genLoad(value)
+                bc.genPrimitiveConcat(bt, elem.pos)
+
+              case _ =>
+                val kind = tpeTK(elem)
+                genLoad(elem, kind)
+                bc.genStringConcat(kind, elem.pos)
+            }
           }
           bc.genEndConcat(tree.pos)
 
