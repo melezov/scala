@@ -15,7 +15,8 @@ trait ReplStrings {
   def string2code(str: String): String = {
     val res = new StringBuilder
     for (c <- str) c match {
-      case '"' | '\'' | '\\'  => res += '\\' ; res += c
+      case '"' | '\'' | '\\'  => res += '\\' += c
+      case '\n'               => res += '\\' += 'n'
       case _ if c.isControl   => res ++= Chars.char2uescape(c)
       case _                  => res += c
     }
